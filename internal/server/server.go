@@ -40,8 +40,10 @@ type Server struct {
 	// tries and slots keep the page from running away with the Claude login;
 	// write writes the notes (swapped in tests).
 	tries *limiter
-	slots chan struct{}
-	write func(ctx context.Context, system, prompt string, emit func(string)) error
+	// unlocks throttles the guesses at LETTER_PIN.
+	unlocks *limiter
+	slots   chan struct{}
+	write   func(ctx context.Context, system, prompt string, emit func(string)) error
 	// awayUntil is when to try Claude again after it failed; until then the
 	// canned notes stand in, after a pause as if written.
 	awayMu    sync.Mutex
@@ -76,6 +78,7 @@ func New(cfg config.Config, log *slog.Logger) (*Server, error) {
 		static:       static,
 		assetVersion: version,
 		tries:        newLimiter(answerBurst, answerPerMinute),
+		unlocks:      newLimiter(unlockBurst, unlockPerMinute),
 		slots:        make(chan struct{}, answerSlots),
 		typing:       fallbackTyping,
 		claudeTurn:   make(chan struct{}, 1),
@@ -90,7 +93,9 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.handleIndex)
 	// Same-origin only: rejects cross-site form posts and fetches.
-	mux.Handle("POST /api/answer", http.NewCrossOriginProtection().Handler(http.HandlerFunc(s.handleAnswer)))
+	cop := http.NewCrossOriginProtection()
+	mux.Handle("POST /api/answer", cop.Handler(http.HandlerFunc(s.handleAnswer)))
+	mux.Handle("POST /api/unlock", cop.Handler(http.HandlerFunc(s.handleUnlock)))
 	mux.HandleFunc("GET /healthz", handleHealth)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", cacheFor(time.Hour, http.FileServerFS(s.static))))
 	return s.recoverPanics(securityHeaders(s.logRequests(mux)))
@@ -99,6 +104,12 @@ func (s *Server) Handler() http.Handler {
 // view is everything the page shows. The gift is not in it: it's sent only
 // with the reply to a yes.
 type view struct {
+	// Locked shows only the sealed envelope and the code field: none of
+	// the fields below but Seal, Theme and AssetVersion are set.
+	Locked bool
+	// Numeric brings up the number pad for an all-digit code.
+	Numeric bool
+
 	Name       string
 	From       string
 	Title      string
@@ -117,6 +128,17 @@ type view struct {
 	// Preview is the link preview's line: the title only, never the letter.
 	Preview      string
 	AssetVersion string
+}
+
+func (s *Server) lockedView() view {
+	return view{
+		Locked:       true,
+		Numeric:      strings.Trim(s.cfg.Pin, "0123456789") == "",
+		Seal:         s.cfg.Seal,
+		Theme:        s.cfg.Theme,
+		Preview:      "A sealed letter",
+		AssetVersion: s.assetVersion,
+	}
 }
 
 func (s *Server) view() view {
@@ -144,8 +166,12 @@ func (s *Server) view() view {
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	// Render into a buffer so a template error becomes a clean 500 instead
 	// of a half-written page.
+	v := s.view()
+	if s.locked(r) {
+		v = s.lockedView()
+	}
 	var buf bytes.Buffer
-	if err := s.page.Execute(&buf, s.view()); err != nil {
+	if err := s.page.Execute(&buf, v); err != nil {
 		s.log.Error("render page", "error", err)
 		http.Error(w, "something went wrong", http.StatusInternalServerError)
 		return

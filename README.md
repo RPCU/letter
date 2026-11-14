@@ -4,7 +4,7 @@ A little page holding a sealed letter and one question. By default it's an
 apology: *"I'm sorry … Do you forgive me?"*. Every word can be changed, so the
 same page can wish someone a good trip, ask them to dinner, or say thank you.
 
-1. An envelope with a wax seal (`LETTER_SEAL`, ♥). Tap the seal to open it.
+1. An envelope with a wax seal (`LETTER_SEAL`, 🥺). Tap the seal to open it.
 2. The letter unfolds: date, title, *Dear {name},* your paragraphs and your
    signature.
 3. The question, with a little cloud over the sun, and two buttons.
@@ -46,7 +46,8 @@ separate paragraphs, and the list settings take one item per line.
 | `LETTER_STAMP`        | `forgiven`                     | The stamp on that card (max 24). |
 | `LETTER_GIFT`         |                                | An extra revealed after the yes and the promises (a code or a link). Never in the page: only in the reply to the yes. Never shown to Claude (max 500). |
 | `LETTER_GIFT_INTRO`   | `And a little something, to make it up to you` | The line announcing it. |
-| `LETTER_SEAL`         | `♥`                            | On the wax seal: a character or an emoji (max 8). |
+| `LETTER_SEAL`         | `🥺`                           | On the wax seal: a character or an emoji (max 8). |
+| `LETTER_PIN`          |                                | A code that locks the page (4 to 64 characters, digits bring up the number pad). See *Locking it* below. |
 | `LETTER_THEME`        | `rose`                         | `rose`, `sage`, `ocean`, `dusk` or `gold`. |
 | `LETTER_TIMEZONE`     | `UTC`                          | IANA zone for the letter's date and the answers log. |
 | `LETTER_AI`           | `true`                         | Claude writes the notes; `false` uses only the canned ones. |
@@ -106,6 +107,21 @@ LETTER_FALLBACK_YES: |
   — A suitcase that closes on the way back.
 ```
 
+## Locking it
+
+Set `LETTER_PIN` and the page serves only a sealed envelope with a code field
+("It’s sealed with a little code"): no name, no letter, no question, and the
+link preview says only "A sealed letter". The right code cracks the seal and
+the letter opens; a wrong one shakes the envelope. Answers are refused
+without it too.
+
+Once entered, an `HttpOnly` cookie keeps it open for 90 days on that browser.
+The cookie is derived from the code (not the code itself), so it works on
+every replica, and changing `LETTER_PIN` locks everyone out again. Guesses
+are throttled across every visitor (8, then 4 a minute), so a 4-digit code
+takes days to guess and a 6-digit one years; a word is better still. Send the
+code separately from the link.
+
 ## Claude
 
 Each answer runs a fresh `claude --print` in an empty directory, cut off from
@@ -159,6 +175,10 @@ kubectl exec <pod> -- cat /home/letter/.claude/letter-answers.md
   `{"done": true}`, with `gift`, `link` and `intro` after a yes when there's a
   gift; or `{"error": "away"}` if Claude stops mid-note). Same-origin only.
   `409` for a No once the No labels have run out, `429` when throttled.
+- `POST /api/unlock` (`{"pin": "…"}`): sets the key cookie for the right
+  code; `403` for a wrong one, `429` when throttled, `404` with no
+  `LETTER_PIN`. Same-origin only. With a code set, `POST /api/answer`
+  answers `403` without the cookie.
 - `GET /healthz`: liveness/readiness probe.
 
 ## Development

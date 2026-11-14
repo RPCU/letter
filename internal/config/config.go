@@ -29,7 +29,7 @@ const (
 	// DefaultStamp is pressed on that card.
 	DefaultStamp = "forgiven"
 	// DefaultSeal is on the envelope's wax seal.
-	DefaultSeal = "♥"
+	DefaultSeal = "🥺"
 	// DefaultTheme is the page's palette.
 	DefaultTheme = "rose"
 	// DefaultGiftIntro announces LETTER_GIFT on the yes card.
@@ -101,6 +101,8 @@ const (
 	maxGiftLen     = 500
 	maxSealLen     = 8
 	maxStampLen    = 24
+	minPinLen      = 4
+	maxPinLen      = 64
 )
 
 // Config is the validated application configuration.
@@ -133,6 +135,10 @@ type Config struct {
 	Theme string
 
 	Location *time.Location
+
+	// Pin, when set, locks the page: only a sealed envelope and a code field
+	// are served until someone enters it.
+	Pin string
 
 	// AI has Claude, through Claude Code on the container's login, write a
 	// note after every answer. Context tells it what happened (never shown);
@@ -177,6 +183,7 @@ func Load(getenv func(string) string) (Config, error) {
 		GiftIntro: valueOr(get("LETTER_GIFT_INTRO"), DefaultGiftIntro),
 		Seal:      valueOr(get("LETTER_SEAL"), DefaultSeal),
 		Theme:     strings.ToLower(valueOr(get("LETTER_THEME"), DefaultTheme)),
+		Pin:       get("LETTER_PIN"),
 		Context:   get("LETTER_CONTEXT"),
 		Prompt:    get("LETTER_PROMPT"),
 		YesStyle:  valueOr(get("LETTER_YES_STYLE"), DefaultYesStyle),
@@ -224,6 +231,9 @@ func Load(getenv func(string) string) (Config, error) {
 	tooMany("LETTER_FALLBACK_NO", cfg.FallbackNo, maxFallbacks, maxLineLen)
 	tooLong("LETTER_FALLBACK_YES", cfg.FallbackYes, maxMessageLen)
 
+	if n := utf8.RuneCountInString(cfg.Pin); n > 0 && (n < minPinLen || n > maxPinLen) {
+		errs = append(errs, fmt.Errorf("LETTER_PIN: %d to %d characters", minPinLen, maxPinLen))
+	}
 	if !slices.Contains(Themes, cfg.Theme) {
 		errs = append(errs, fmt.Errorf("LETTER_THEME %q: want one of %s", cfg.Theme, strings.Join(Themes, ", ")))
 	}

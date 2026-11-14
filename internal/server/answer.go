@@ -59,6 +59,10 @@ var errAway = errors.New("claude away")
 // handleAnswer takes their yes or no and streams back the note that follows.
 func (s *Server) handleAnswer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	if s.locked(r) {
+		writeJSONError(w, http.StatusForbidden, "locked")
+		return
+	}
 	var req answerRequest
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, "bad request")

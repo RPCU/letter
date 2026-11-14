@@ -20,6 +20,33 @@
     <canvas class="confetti" aria-hidden="true"></canvas>
     <div class="petals" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
+    {{if .Locked}}
+    <main class="stage is-locked">
+        <section class="envelope" aria-label="A sealed letter">
+            <p class="envelope-to">A letter is waiting <span>for you</span></p>
+            <div class="envelope-art">
+                <svg class="envelope-paper" viewBox="0 0 320 210" aria-hidden="true" focusable="false">
+                    <rect class="env-back" x="4" y="4" width="312" height="202" rx="10"/>
+                    <path class="env-side" d="M4 14l132 96M316 14L184 110"/>
+                    <path class="env-front" d="M4 206L130 104a46 46 0 0 1 60 0l126 102z"/>
+                    <path class="env-flap" d="M6 8h308L176 112a26 26 0 0 1-32 0z"/>
+                </svg>
+                <button class="seal" type="submit" form="lock" aria-label="Open the letter">
+                    <span class="seal-mark">{{.Seal}}</span>
+                </button>
+            </div>
+            <form class="lock" id="lock">
+                <label class="lock-label" for="lock-pin">It’s sealed with a little code</label>
+                <div class="lock-row">
+                    <input class="lock-pin" id="lock-pin" name="pin" type="password" autocomplete="off" spellcheck="false"
+                        {{if .Numeric}}inputmode="numeric" {{end}}maxlength="64" required placeholder="• • • •">
+                    <button class="lock-open" type="submit">Open</button>
+                </div>
+                <p class="envelope-hint lock-hint" aria-live="polite">enter it to break the seal</p>
+            </form>
+        </section>
+    </main>
+    {{else}}
     <main class="stage" data-no-labels="{{.NoLabels}}">
         <section class="envelope" aria-label="A sealed letter">
             <p class="envelope-to">A letter for <span>{{.Name}}</span></p>
@@ -88,5 +115,6 @@
             </section>
         </article>
     </main>
+    {{end}}
 </body>
 </html>

@@ -16,7 +16,7 @@ Letter is a one-page Go web app: a sealed envelope, a letter (`LETTER_TITLE`,
 `LETTER_MESSAGE`, signed `LETTER_FROM`) and a question (`LETTER_QUESTION`)
 with a yes and a no. After each answer, Claude (through Claude Code) writes a
 short note, streamed into the page. Apology by default; every word is
-configurable (a good trip, an invitation…). There is no auth and no prompt
+configurable (a good trip, an invitation…). There is no auth (an optional code, `LETTER_PIN`) and no prompt
 box. The only thing written is the answers log (`answers.go`).
 
 Module path: `github.com/Banh-Canh/letter`.
@@ -57,6 +57,11 @@ Use `devenv shell -- <cmd>`, which provides Go, gofumpt, golines and air.
   the `done` event of a yes carries it. `LETTER_CONTEXT` is for Claude only,
   never rendered. The link preview says only "A letter for {name}". Tests
   assert this.
+- `LETTER_PIN` (`pin.go`) locks the page: without the key cookie, `/` renders
+  only `lockedView()` (seal, theme, no name or words) and `/api/answer`
+  answers 403. The cookie is an HMAC derived from the code, never the code;
+  guesses go through their own global limiter. Tests assert the locked page
+  leaks nothing.
 - The tone is the product: cute but mature, never cheesy. The system prompt
   forbids guilt-tripping, pressure and invented memories; keep it. The page
   steers toward yes gently (No shrinks, Yes grows, No leaves when

@@ -8,6 +8,75 @@
     if (!stage) return;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const $ = (sel, root = document) => root.querySelector(sel);
+    // Set when the code was just entered, so the letter opens right away
+    // after the reload instead of asking for a second tap on the seal.
+    const UNSEALED = "letter-unsealed";
+
+    // The code (LETTER_PIN): only the envelope is served until it's entered.
+
+    if (stage.classList.contains("is-locked")) {
+        const envelope = $(".envelope");
+        const form = $(".lock");
+        const input = $(".lock-pin");
+        const hint = $(".lock-hint");
+        const buttons = [...document.querySelectorAll(".seal, .lock-open")];
+        let trying = false;
+        const say = (text, cls) => {
+            hint.textContent = text;
+            hint.classList.toggle("is-wrong", cls === "wrong");
+        };
+        const shake = () => {
+            if (calm) return;
+            envelope.classList.remove("is-shaking");
+            void envelope.offsetWidth;
+            envelope.classList.add("is-shaking");
+        };
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const pin = input.value.trim();
+            if (trying) return;
+            if (!pin) {
+                input.focus();
+                shake();
+                return;
+            }
+            trying = true;
+            buttons.forEach((b) => (b.disabled = true));
+            let res;
+            try {
+                res = await fetch("/api/unlock", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pin }),
+                });
+            } catch {
+                res = null;
+            }
+            if (res && res.ok) {
+                try {
+                    sessionStorage.setItem(UNSEALED, "1");
+                } catch {}
+                envelope.classList.add("is-opening");
+                setTimeout(() => location.reload(), calm ? 0 : 900);
+                return;
+            }
+            trying = false;
+            buttons.forEach((b) => (b.disabled = false));
+            if (res && res.status === 429) {
+                say("let’s take a breath, try again in a minute");
+            } else if (res && res.status === 403) {
+                say("not quite, try again", "wrong");
+                input.select();
+            } else {
+                say("the post is slow, try again");
+            }
+            shake();
+        });
+        $(".envelope-art").addEventListener("click", (e) => {
+            if (!e.target.closest(".seal")) input.focus();
+        });
+        return;
+    }
 
     let labels = [];
     try {
@@ -46,6 +115,16 @@
         );
     }
     seal.addEventListener("click", openLetter);
+    let unsealed = false;
+    try {
+        unsealed = sessionStorage.getItem(UNSEALED) === "1";
+        sessionStorage.removeItem(UNSEALED);
+    } catch {}
+    if (unsealed) {
+        envelope.hidden = true;
+        letter.hidden = false;
+        requestAnimationFrame(() => letter.classList.add("is-shown"));
+    }
     $(".envelope-art").addEventListener("click", (e) => {
         if (e.target !== seal && !seal.contains(e.target)) openLetter();
     });

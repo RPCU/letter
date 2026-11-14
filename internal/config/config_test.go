@@ -68,11 +68,12 @@ func TestEveryProblemAtOnce(t *testing.T) {
 		"LETTER_MODEL":    "--evil",
 		"LETTER_NAME":     strings.Repeat("x", 65),
 		"LETTER_NO":       strings.Repeat("x", 41),
+		"LETTER_PIN":      "123",
 	})
 	if err == nil {
 		t.Fatal("no error")
 	}
-	for _, key := range []string{"LETTER_PORT", "LETTER_THEME", "LETTER_AI", "LETTER_TIMEZONE", "LETTER_MODEL", "LETTER_NAME", "LETTER_NO"} {
+	for _, key := range []string{"LETTER_PORT", "LETTER_THEME", "LETTER_AI", "LETTER_TIMEZONE", "LETTER_MODEL", "LETTER_NAME", "LETTER_NO", "LETTER_PIN"} {
 		if !strings.Contains(err.Error(), key) {
 			t.Errorf("error lacks %s: %v", key, err)
 		}
