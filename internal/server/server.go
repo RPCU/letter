@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"strings"
@@ -50,6 +51,12 @@ type Server struct {
 	awayUntil time.Time
 	typing    time.Duration
 	answersMu sync.Mutex
+	// recent are the last notes written (see notes.go).
+	notesMu sync.Mutex
+	recent  []string
+	// pick draws the moods, lengths, images and canned asides (swapped in
+	// tests).
+	pick func(n int) int
 	// claudeTurn lets one Claude Code run at a time in this process (see
 	// takeClaudeTurn).
 	claudeTurn chan struct{}
@@ -83,6 +90,7 @@ func New(cfg config.Config, log *slog.Logger) (*Server, error) {
 		typing:       fallbackTyping,
 		claudeTurn:   make(chan struct{}, 1),
 		now:          time.Now,
+		pick:         rand.IntN,
 	}
 	s.write = s.claudeWrite
 	return s, nil
@@ -117,8 +125,16 @@ type view struct {
 	Question   string
 	Yes        string
 	No         string
-	// NoLabels is the no button's words, as JSON for the script.
+	// NoLabels is the no button's words, Reasons the chips after a no
+	// (empty without LETTER_ASK_WHY), as JSON for the script.
 	NoLabels  string
+	Reasons   string
+	Why       string
+	Bargain   bool
+	Offer     string
+	More      string
+	Rounds    int
+	Cloud     bool
 	YesTitle  string
 	Stamp     string
 	HasGift   bool
@@ -143,7 +159,20 @@ func (s *Server) lockedView() view {
 
 func (s *Server) view() view {
 	labels, _ := json.Marshal(s.cfg.NoLabels)
+	var reasons []string
+	why := ""
+	if s.cfg.AskWhy {
+		reasons, why = s.cfg.Reasons, s.cfg.Why
+	}
+	reasonsJSON, _ := json.Marshal(reasons)
 	return view{
+		Reasons:      string(reasonsJSON),
+		Why:          why,
+		Bargain:      s.cfg.Bargain,
+		Offer:        s.cfg.Offer,
+		More:         s.cfg.More,
+		Rounds:       config.BargainRounds,
+		Cloud:        s.cfg.Cloud,
 		Name:         s.cfg.Name,
 		From:         s.cfg.From,
 		Title:        s.cfg.Title,

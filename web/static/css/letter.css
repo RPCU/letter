@@ -331,6 +331,118 @@ h1:focus, h2:focus { outline: none; }
 .note.is-old { opacity: 0.45; scale: 0.94; }
 .note.is-hint { font-family: var(--sans); font-size: 0.9rem; color: var(--ink-soft); background: transparent; box-shadow: none; text-align: center; }
 .note.is-hint::before { display: none; }
+.note.is-reply { background: var(--paper); border: 1px solid var(--line); }
+.note.is-deal { background: color-mix(in srgb, var(--gold) 22%, var(--paper)); }
+
+/* Why not? */
+
+.why {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: -2px;
+    animation: rise 0.5s ease 0.2s both;
+}
+.why-label { width: 100%; font-style: italic; color: var(--ink-soft); font-size: 1rem; }
+.chip {
+    padding: 0.38em 0.95em;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.chip:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.chip:disabled, .offer:disabled, .offer-more:disabled { cursor: progress; }
+
+/* The bargain */
+
+.offer-open, .offer-more {
+    margin: 14px auto 0;
+    padding: 0.3em 0.2em;
+    border: 0;
+    border-bottom: 1px dashed currentColor;
+    background: none;
+    color: var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.offer-open { display: block; animation: rise 0.5s ease both; }
+.offer-open[hidden], .offer-more[hidden] { display: none; }
+.bargain { margin: 18px auto 0; max-width: 440px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.4s; }
+.bargain.is-shown { opacity: 1; transform: none; }
+.offers { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-height: 2.6em; }
+.bargain.is-writing .offers:empty::before { content: "…"; font-family: var(--hand); font-size: 1.6rem; color: var(--ink-soft); animation: blink 1s steps(2) infinite; }
+.offer {
+    width: 100%;
+    padding: 0.7em 1em;
+    border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line));
+    border-radius: 10px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--hand);
+    font-size: 1.35rem;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    animation: rise 0.4s ease both;
+    transition: border-color 0.2s, transform 0.25s, opacity 0.4s, background 0.3s;
+}
+.offer:hover:not(:disabled) { border-style: solid; border-color: var(--accent); transform: rotate(-0.6deg) scale(1.01); }
+.offer.is-taken { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent-soft) 55%, var(--paper)); }
+.offer.is-taken::after { content: " ✓"; color: var(--accent); }
+.offer.is-gone { opacity: 0.3; text-decoration: line-through; text-decoration-thickness: 1px; }
+.bargain-hint { margin: 8px 0 0; font-family: var(--sans); font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); }
+
+/* The cloud's aside */
+
+.sky-wrap { position: relative; display: inline-block; margin-top: 22px; }
+.cloud-says {
+    position: absolute;
+    left: 38%;
+    bottom: calc(100% - 10px);
+    width: max-content;
+    max-width: min(230px, 70vw);
+    margin: 0;
+    padding: 6px 12px;
+    border-radius: 14px;
+    background: var(--paper);
+    box-shadow: 0 6px 16px -8px rgb(60 40 30 / 0.35);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    line-height: 1.3;
+    text-align: center;
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.96);
+    transform-origin: bottom center;
+    transition: opacity 0.35s, transform 0.35s;
+    pointer-events: none;
+    z-index: 2;
+}
+.cloud-says::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 9px;
+    height: 9px;
+    margin-left: -5px;
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    rotate: 45deg;
+}
+.cloud-says.is-shown { opacity: 1; transform: translate(-50%, 0); }
+
 @keyframes pin { from { opacity: 0; transform: translateY(-10px) scale(0.96); } }
 
 .is-writing .ink:empty::before,

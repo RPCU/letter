@@ -27,8 +27,11 @@ func TestDefaults(t *testing.T) {
 	if len(cfg.Paragraphs()) != 3 {
 		t.Errorf("paragraphs %q", cfg.Paragraphs())
 	}
-	if len(cfg.NoLabels) != len(DefaultNoLabels) || len(cfg.NoStyles) != len(cfg.FallbackNo) {
-		t.Error("each no needs a style and a fallback")
+	if len(cfg.NoLabels) != len(DefaultNoLabels) || len(cfg.NoLabels) != len(cfg.FallbackNo) || len(cfg.Reasons) != len(cfg.FallbackWhy) {
+		t.Error("each no and each reason needs a fallback")
+	}
+	if !cfg.Shuffle || !cfg.AskWhy || !cfg.Bargain || !cfg.Cloud {
+		t.Errorf("%+v", cfg)
 	}
 }
 

@@ -8,11 +8,24 @@ same page can wish someone a good trip, ask them to dinner, or say thank you.
 2. The letter unfolds: date, title, *Dear {name},* your paragraphs and your
    signature.
 3. The question, with a little cloud over the sun, and two buttons.
-4. **No** → Claude writes a short handwritten note in a new form each time:
-   a sincere line, then a haiku, a mock-formal petition, a weather forecast of
-   your remorse, a recipe for forgiveness, and finally a gracious "take your
-   time". Each No adds rain to the cloud, shrinks No a little and grows Yes.
-   Once the No labels run out, the No button slips away and only Yes is left.
+4. **No** → Claude writes a short handwritten note in a new form each time,
+   drawn in a new order on every visit from twenty: a haiku, a telegram
+   (STOP), a lost-and-found notice, a museum placard, terms and conditions, a
+   horoscope, a menu of apologies, a review of your own apology… The last No
+   always gets a gracious "take your time". Each note also gets a random
+   mood, length and small image to weave in, knows the time of day, and never
+   repeats a note from this visit or earlier ones. Each No adds rain to the
+   cloud, shrinks No a little and grows Yes. Once the No labels run out, the
+   No button slips away and only Yes is left.
+   - **Why not?** Under each No note, a few reasons to tap (*Too soon*,
+     *Still a bit upset*, *Just teasing you*, *Convince me*). Claude answers
+     the one tapped.
+   - **Make me an offer.** After the first No, Claude offers three small ways
+     to make it up, built from `LETTER_CONTEXT`. *Sweeten it* asks for
+     bolder ones (three rounds). Tapping one seals the deal: Claude writes a
+     note, Yes grows, and the thank-you after a yes honours it.
+   - **The cloud talks.** The little cloud over the sun gets the last word
+     after each note, in a speech bubble: dry, cheeky, on nobody's side.
 5. **Yes** → the cloud drifts off, petals and hearts fly, a *forgiven* stamp
    lands, and Claude writes a thank-you with three small promises built from
    what happened. Tap each promise to accept it. The last one reveals the
@@ -53,10 +66,25 @@ separate paragraphs, and the list settings take one item per line.
 | `LETTER_AI`           | `true`                         | Claude writes the notes; `false` uses only the canned ones. |
 | `LETTER_CONTEXT`      |                                | What happened, for Claude only, never shown: *"I forgot our dinner on Friday"* (max 2000). |
 | `LETTER_PROMPT`       |                                | More instructions on how to write: in-jokes, nicknames, things to avoid (max 8000). |
-| `LETTER_NO_STYLES`    | six forms (sincere → haiku → petition → forecast → recipe → gracious) | The form of the note after each No, one per line; the last one stays. `{name}` becomes `LETTER_NAME`. |
+| `LETTER_NO_STYLES`    | twenty forms                   | The forms a No note can take, one per line, drawn in a new order on each visit. `{name}` becomes `LETTER_NAME`. |
+| `LETTER_NO_LAST_STYLE`| a gracious "take your time"    | The form after the last No, as the No button leaves. |
+| `LETTER_SHUFFLE`      | `true`                         | Draw the forms in a new order each visit; `false` uses them in order. |
+| `LETTER_IMAGES`       | 36 small images                | One is drawn for each note for Claude to weave in (a paper boat, a lighthouse…), one per line. |
+| `LETTER_ASK_WHY`      | `true`                         | Offer the reasons to tap after a No. |
+| `LETTER_WHY`          | `Why not?`                     | The line over them. |
+| `LETTER_REASONS`      | `Too soon` … `Convince me` (4) | The reasons, one per line (max 8 × 40). |
+| `LETTER_BARGAIN`      | `true`                         | Offer the bargain after the first No. |
+| `LETTER_OFFER`        | `Make me an offer`             | The link that opens it. |
+| `LETTER_MORE`         | `Sweeten it`                   | The link for bolder offers. |
+| `LETTER_OFFERS`       |                                | Things you'd happily do, one per line, for Claude to draw the offers from (for Claude only). Otherwise it invents small, doable ones from the context. |
+| `LETTER_CLOUD`        | `true`                         | Let the cloud add its aside after the notes. |
 | `LETTER_YES_STYLE`    | thank-you + three promises     | The form of the note after the yes. Lines starting with `— ` become the promises to accept. |
 | `LETTER_FALLBACK_NO`  | six canned notes               | Used when Claude can't write, one per No in turn; the last one stays. |
 | `LETTER_FALLBACK_YES` | thank-you + three promises     | Used when Claude can't write the yes note. |
+| `LETTER_FALLBACK_WHY` | one per default reason         | Canned answers to the reasons, in the same order; the last one stays. |
+| `LETTER_FALLBACK_OFFERS` | nine canned offers          | Three per round (at least three lines). |
+| `LETTER_FALLBACK_DEAL`| a canned "deal"                | Seals a deal when Claude can't write. |
+| `LETTER_FALLBACK_CLOUD` | six canned asides            | The cloud's asides when Claude can't write, drawn at random. |
 | `LETTER_ANSWERS`      | `true`                         | Log every answer for you (see below). |
 | `LETTER_MODEL`        | `sonnet`                       | Claude model (`sonnet`, `opus`, `haiku` or a full model ID). |
 | `LETTER_COMMAND`      | `claude`                       | The Claude Code CLI. |
@@ -92,7 +120,38 @@ LETTER_CONTEXT: She lived in Singapore before and is going back for two weeks of
 LETTER_NO_STYLES: |
   a playful one-line bribe involving kaya toast
   a haiku about a postcard that never arrives
-  a gracious note: no photo needed, just come back safe and happy
+  a fake customs declaration for the photo
+  a weather report from Marina Bay
+LETTER_NO_LAST_STYLE: a gracious note: no photo needed, just come back safe and happy
+LETTER_IMAGES: |
+  a hawker stall
+  an orchid
+  the MRT
+  a durian (kept at a distance)
+  a monsoon shower
+LETTER_WHY: Why not?
+LETTER_REASONS: |
+  No wifi
+  Too busy eating
+  Convince me
+LETTER_FALLBACK_WHY: |
+  The hotel has wifi. I checked. Twice.
+  Fair. Eat first, photos later.
+  One photo, one kaya toast. My treat when you're back.
+LETTER_OFFER: What do I get for it?
+LETTER_OFFERS: |
+  an airport pick-up on the way back
+  a favourite dinner, my treat
+LETTER_FALLBACK_OFFERS: |
+  Airport pick-up, with a sign that has your name on it.
+  Your favourite dinner, the night you land.
+  I water your plants the whole time.
+  A welcome-home cake.
+  I'll listen to every single story.
+  A frame for the best photo.
+  All three of the above. Final offer.
+  I learn to make kaya toast.
+  A day trip somewhere new, planned by me.
 LETTER_YES_STYLE: >-
   a warm, happy send-off of one or two sentences, then exactly three little
   wishes for the trip, each on its own line starting with "— "
@@ -158,7 +217,10 @@ about 250 MiB, two at most at once: give the container ~640 MiB and 2 CPUs.
 
 ```
 - 2026-11-14 21:30 CET: no ("No", no number 1)
-- 2026-11-14 21:31 CET: **yes** ("Yes", after 1 no)
+- 2026-11-14 21:30 CET: why not: "Still a bit upset"
+- 2026-11-14 21:31 CET: asked for an offer (round 1)
+- 2026-11-14 21:31 CET: **deal**: "Brunch this weekend, my cooking, phone face-down."
+- 2026-11-14 21:32 CET: **yes** ("Yes", after 1 no), with the deal "Brunch this weekend, my cooking, phone face-down."
 ```
 
 It's never cleared and never served. Read it with:
@@ -170,11 +232,15 @@ kubectl exec <pod> -- cat /home/letter/.claude/letter-answers.md
 ## Endpoints
 
 - `GET /`: the page.
-- `POST /api/answer` (`{"answer": "yes"|"no", "noes": n, "notes": ["…"]}`):
-  the note that follows, streamed as JSON lines (`{"text"}`…, then
-  `{"done": true}`, with `gift`, `link` and `intro` after a yes when there's a
-  gift; or `{"error": "away"}` if Claude stops mid-note). Same-origin only.
-  `409` for a No once the No labels have run out, `429` when throttled.
+- `POST /api/answer` (`{"answer": "yes"|"no"|"why"|"offer"|"deal", "noes": n,
+  "seed": n, "notes": ["…"], "reason": i, "round": i, "deal": "…"}`): the
+  note that follows, streamed as JSON lines (`{"text"}`…, then the cloud's
+  `{"cloud"}`, then `{"done": true}`, with `gift`, `link` and `intro` after a
+  yes when there's a gift; or `{"error": "away"}` if Claude stops mid-note).
+  `seed` is drawn once per visit and orders the No forms; `why` takes the
+  reason's index (after a No), `offer` the round (0 to 2), `deal` the accepted
+  offer (also sent with the yes). Same-origin only. `409` for a No once the No
+  labels have run out (or a disabled feature), `429` when throttled.
 - `POST /api/unlock` (`{"pin": "…"}`): sets the key cookie for the right
   code; `403` for a wrong one, `429` when throttled, `404` with no
   `LETTER_PIN`. Same-origin only. With a code set, `POST /api/answer`

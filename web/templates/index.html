@@ -47,7 +47,7 @@
         </section>
     </main>
     {{else}}
-    <main class="stage" data-no-labels="{{.NoLabels}}">
+    <main class="stage" data-no-labels="{{.NoLabels}}" data-reasons="{{.Reasons}}" data-why="{{.Why}}" data-rounds="{{.Rounds}}">
         <section class="envelope" aria-label="A sealed letter">
             <p class="envelope-to">A letter for <span>{{.Name}}</span></p>
             <div class="envelope-art">
@@ -73,6 +73,8 @@
             {{with .From}}<p class="letter-sign">— {{.}}</p>{{end}}
 
             <section class="ask" aria-label="A question">
+                <div class="sky-wrap">
+                {{if .Cloud}}<p class="cloud-says" aria-live="polite" hidden></p>{{end}}
                 <svg class="sky" viewBox="0 0 120 80" aria-hidden="true" focusable="false">
                     <g class="sun">
                         <g class="rays">
@@ -88,11 +90,20 @@
                         </g>
                     </g>
                 </svg>
+                </div>
                 <p class="question">{{.Question}}</p>
                 <div class="answers">
                     <button class="answer answer-yes" type="button">{{.Yes}}</button>
                     <button class="answer answer-no" type="button">{{.No}}</button>
                 </div>
+                {{if .Bargain}}
+                <button class="offer-open" type="button" hidden>{{.Offer}}</button>
+                <div class="bargain" hidden>
+                    <ul class="offers" aria-live="polite"></ul>
+                    <p class="bargain-hint">tap one to accept it</p>
+                    <button class="offer-more" type="button" hidden>{{.More}}</button>
+                </div>
+                {{end}}
                 <ol class="notes" aria-live="polite"></ol>
             </section>
 

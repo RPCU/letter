@@ -128,7 +128,7 @@ func TestStaticAndHealth(t *testing.T) {
 }
 
 func TestNoWritesANoteInItsTurnsForm(t *testing.T) {
-	s := newServer(t)
+	s := newServer(t, func(c *config.Config) { c.Shuffle = false })
 	var system, prompt string
 	s.write = func(_ context.Context, sys, p string, emit func(string)) error {
 		system, prompt = sys, p
@@ -149,7 +149,7 @@ func TestNoWritesANoteInItsTurnsForm(t *testing.T) {
 			t.Errorf("prompt lacks %q:\n%s", want, prompt)
 		}
 	}
-	for _, want := range []string{"as Victor", "Chihiro", "Never guilt-trip"} {
+	for _, want := range []string{"as Victor", "Chihiro", "Never guilt-trip", "Saturday evening", "rain cloud"} {
 		if !strings.Contains(system, want) {
 			t.Errorf("system prompt lacks %q", want)
 		}

@@ -17,7 +17,7 @@ Letter is a one-page Go web app: a sealed envelope, a letter (`LETTER_TITLE`,
 with a yes and a no. After each answer, Claude (through Claude Code) writes a
 short note, streamed into the page. Apology by default; every word is
 configurable (a good trip, an invitation…). There is no auth (an optional code, `LETTER_PIN`) and no prompt
-box. The only thing written is the answers log (`answers.go`).
+box. The only things written are the answers log (`answers.go`) and the recent notes (`notes.go`).
 
 Module path: `github.com/Banh-Canh/letter`.
 
@@ -74,8 +74,22 @@ Use `devenv shell -- <cmd>`, which provides Go, gofumpt, golines and air.
   `$CLAUDE_CONFIG_DIR/letter-claude.lock`), since concurrent OAuth renewals
   revoke each other. When Claude fails, canned notes (`LETTER_FALLBACK_*`)
   stand in for `awayFor` (a minute).
-- Each no's style, label and fallback are indexed by the count of earlier
-  noes, capped at the last one. Keep the default lists the same length.
+- Variety is the product too (`prompt.go`): a No's form comes from
+  `LETTER_NO_STYLES` in an order drawn from the visit's `seed`
+  (`noStyle`), and the last No always gets `LETTER_NO_LAST_STYLE`. Each note
+  also gets a random mood, length and image (`flavour`, `s.pick`, swapped in
+  tests), the time of day (`moment`), and the last notes from earlier visits
+  (`notes.go`, `$CLAUDE_CONFIG_DIR/letter-notes.json`, shared by replicas).
+  Labels and fallbacks are still indexed by the count of earlier noes, capped
+  at the last one: keep `DefaultNoLabels` and `DefaultFallbackNo` the same
+  length, and `DefaultReasons` and `DefaultFallbackWhy`.
+- Answer kinds: `yes`, `no`, `why` (a reason chip, only after a no),
+  `offer` (three `— ` lines, `config.BargainRounds` rounds) and `deal` (the
+  accepted offer, which the yes prompt then honours). Each is noted in the
+  answers log. The cloud's aside is the note's last line after `☁`:
+  `cloudSplit` strips it from the stream and sends it as its own `cloud`
+  event (not on the yes or the offers). Offers stay small and doable: no
+  money, no grand promises (system prompt).
 - CSS/JS URLs carry `?v=<content hash>` (`fingerprint` in the server). Keep
   any new asset linked from the template in that fingerprint.
 - The image's default command must start the server (`serve`): OpenChoreo

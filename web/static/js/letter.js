@@ -95,9 +95,29 @@
     const yesCard = $(".yes");
     const drops = [...document.querySelectorAll(".drops path")];
 
+    const json = (v, d) => {
+        try {
+            return JSON.parse(v || "");
+        } catch {
+            return d;
+        }
+    };
+    const reasons = json(stage.dataset.reasons, []);
+    const why = stage.dataset.why || "";
+    const rounds = Number(stage.dataset.rounds || 0);
+    const cloudSays = $(".cloud-says");
+    const offerOpen = $(".offer-open");
+    const bargain = $(".bargain");
+    const offersEl = $(".offers");
+    const moreBtn = $(".offer-more");
+
     let noes = 0;
     let busy = false;
     const notes = [];
+    // One draw per visit: the server orders the no notes' forms from it.
+    const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+    let round = 0;
+    let deal = "";
 
     // The envelope
 
@@ -133,11 +153,11 @@
 
     // write posts the answer and calls onText with the note so far, then
     // resolves with the last event ({done, gift…} or {error}).
-    async function write(answer, onText) {
+    async function write(answer, onText, extra = {}) {
         const res = await fetch("/api/answer", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ answer, noes, notes: notes.slice(-12) }),
+            body: JSON.stringify({ answer, noes, seed, deal, notes: notes.slice(-12), ...extra }),
         });
         if (!res.ok || !res.body) return { error: res.status === 429 ? "busy" : "failed" };
         const reader = res.body.getReader();
@@ -164,6 +184,7 @@
                     text += ev.text;
                     onText(text);
                 }
+                if (ev.cloud) say(ev.cloud);
                 if (ev.error) last = { ...ev, text };
                 if (ev.done) last = { ...ev, text, error: last.error === "away" ? "away" : undefined };
             }
@@ -176,6 +197,61 @@
         yesBtn.disabled = on;
         noBtn.disabled = on;
         ask.classList.toggle("is-busy", on);
+        ask.querySelectorAll(".chip, .offer, .offer-more, .offer-open").forEach((b) => {
+            if (!b.matches(".is-taken, .is-gone")) b.disabled = on;
+        });
+    }
+
+    // The cloud's aside
+
+    let sayTimer = 0;
+    function say(text) {
+        if (!cloudSays) return;
+        cloudSays.textContent = text;
+        cloudSays.hidden = false;
+        cloudSays.classList.remove("is-shown");
+        void cloudSays.offsetWidth;
+        cloudSays.classList.add("is-shown");
+        clearTimeout(sayTimer);
+        sayTimer = setTimeout(() => cloudSays.classList.remove("is-shown"), 9000);
+    }
+
+    // A handwritten note under the question
+
+    function newNote(cls = "") {
+        notesEl.querySelectorAll(".why").forEach((w) => w.remove());
+        notesEl.querySelectorAll(".note").forEach((n) => n.classList.add("is-old"));
+        const li = document.createElement("li");
+        li.className = `note is-writing ${cls}`.trim();
+        li.style.setProperty("--tilt", `${(Math.random() * 3 - 1.5).toFixed(2)}deg`);
+        const ink = document.createElement("span");
+        ink.className = "ink";
+        li.append(ink);
+        notesEl.append(li);
+        // Only the last few stay on the page.
+        while (notesEl.children.length > 4) notesEl.firstElementChild.remove();
+        li.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+        return { li, ink };
+    }
+
+    // writeNote streams a note of this kind into a new handwritten note and
+    // returns the last event, or null when it couldn't be written.
+    async function writeNote(answer, extra, cls) {
+        const { li, ink } = newNote(cls);
+        let ev;
+        try {
+            ev = await write(answer, (t) => (ink.textContent = t), extra);
+        } catch {
+            ev = { error: "failed" };
+        }
+        li.classList.remove("is-writing");
+        if (ev.error === "busy" || (ev.error === "failed" && !ev.text)) {
+            ink.textContent = "One moment, I’m still writing the last one…";
+            li.classList.add("is-hint");
+            return null;
+        }
+        if (ev.text) notes.push(ev.text.trim());
+        return { ev, li };
     }
 
     // The no
@@ -202,36 +278,124 @@
     async function sayNo() {
         if (busy) return;
         setBusy(true);
-        notesEl.querySelectorAll(".note").forEach((n, i, all) => n.classList.toggle("is-old", i < all.length - 1));
-        const li = document.createElement("li");
-        li.className = "note is-writing";
-        li.style.setProperty("--tilt", `${(Math.random() * 3 - 1.5).toFixed(2)}deg`);
-        const ink = document.createElement("span");
-        ink.className = "ink";
-        li.append(ink);
-        notesEl.append(li);
-        // Only the last three stay on the page.
-        while (notesEl.children.length > 3) notesEl.firstElementChild.remove();
-        li.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
-
-        let ev;
-        try {
-            ev = await write("no", (t) => (ink.textContent = t));
-        } catch {
-            ev = { error: "failed" };
-        }
-        li.classList.remove("is-writing");
-        if (ev.error === "busy" || (ev.error === "failed" && !ev.text)) {
-            ink.textContent = "One moment, I’m still writing the last one…";
-            li.classList.add("is-hint");
+        const got = await writeNote("no");
+        if (!got) {
             setBusy(false);
             return;
         }
-        if (ev.text) notes.push(ev.text);
         noes++;
         sulk();
         setBusy(false);
+        if (offerOpen && !deal && round === 0) offerOpen.hidden = false;
+        askWhy(got.li);
     }
+
+    // Why not? A few reasons to tap under the note; Claude answers the one
+    // tapped.
+
+    function askWhy(li) {
+        if (!why || !reasons.length) return;
+        const box = document.createElement("li");
+        box.className = "why";
+        const label = document.createElement("span");
+        label.className = "why-label";
+        label.textContent = why;
+        box.append(label);
+        reasons.forEach((r, i) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "chip";
+            b.textContent = r;
+            b.addEventListener("click", () => because(i));
+            box.append(b);
+        });
+        li.after(box);
+    }
+
+    async function because(reason) {
+        if (busy) return;
+        setBusy(true);
+        await writeNote("why", { reason }, "is-reply");
+        setBusy(false);
+    }
+
+    // The bargain: three offers to make it up, sweetened up to `rounds`
+    // times; tapping one seals the deal.
+
+    const dash = /^\s*[—–\-•*]\s+/;
+
+    function renderOffers(text, final) {
+        const lines = text.split("\n").filter((l) => dash.test(l));
+        const items = lines.map((l) => l.replace(dash, "").trim()).filter(Boolean);
+        while (offersEl.children.length > items.length) offersEl.lastElementChild.remove();
+        items.forEach((o, i) => {
+            let li = offersEl.children[i];
+            if (!li) {
+                li = document.createElement("li");
+                const b = document.createElement("button");
+                b.type = "button";
+                b.className = "offer";
+                b.disabled = true;
+                b.addEventListener("click", () => accept(b));
+                li.append(b);
+                offersEl.append(li);
+            }
+            li.firstElementChild.textContent = o;
+            li.firstElementChild.disabled = !final;
+        });
+        return items.length;
+    }
+
+    async function offer() {
+        if (busy || deal) return;
+        setBusy(true);
+        offerOpen.hidden = true;
+        bargain.hidden = false;
+        moreBtn.hidden = true;
+        bargain.classList.add("is-writing");
+        offersEl.replaceChildren();
+        requestAnimationFrame(() => bargain.classList.add("is-shown"));
+        bargain.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+        let ev;
+        try {
+            ev = await write("offer", (t) => renderOffers(t, false), { round });
+        } catch {
+            ev = { error: "failed" };
+        }
+        bargain.classList.remove("is-writing");
+        const n = ev.text ? renderOffers(ev.text, true) : 0;
+        setBusy(false);
+        if (!n) {
+            bargain.hidden = true;
+            offerOpen.hidden = false;
+            return;
+        }
+        notes.push(ev.text.trim());
+        round++;
+        moreBtn.hidden = round >= rounds;
+    }
+
+    async function accept(b) {
+        if (busy || deal) return;
+        deal = b.textContent;
+        offersEl.querySelectorAll(".offer").forEach((o) => {
+            o.disabled = true;
+            o.classList.toggle("is-taken", o === b);
+            o.classList.toggle("is-gone", o !== b);
+        });
+        moreBtn.hidden = true;
+        $(".bargain-hint").textContent = "deal";
+        const r = b.getBoundingClientRect();
+        celebrate(r.left + r.width / 2, r.top + r.height / 2, 24);
+        // A deal makes the yes a little easier.
+        stage.style.setProperty("--yes-scale", String(1.12 + Math.min(noes, 6) * 0.08));
+        setBusy(true);
+        await writeNote("deal", {}, "is-deal");
+        setBusy(false);
+    }
+
+    if (offerOpen) offerOpen.addEventListener("click", offer);
+    if (moreBtn) moreBtn.addEventListener("click", offer);
 
     // The yes
 
@@ -294,6 +458,7 @@
     async function sayYes() {
         if (busy) return;
         setBusy(true);
+        if (cloudSays) cloudSays.hidden = true;
         stage.classList.add("is-yes");
         const r = yesBtn.getBoundingClientRect();
         celebrate(r.left + r.width / 2, r.top + r.height / 2);
