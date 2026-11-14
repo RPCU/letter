@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{.Preview}}</title>
+    <meta name="description" content="{{.Preview}}.">
+    <meta property="og:title" content="{{.Preview}}">
+    <meta property="og:description" content="Sealed, and waiting to be opened.">
+    <meta name="theme-color" content="#f7efe6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1c1a1f" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500&display=swap">
+    <link rel="stylesheet" href="/static/css/letter.css?v={{.AssetVersion}}">
+    <script src="/static/js/letter.js?v={{.AssetVersion}}" defer></script>
+</head>
+<body class="theme-{{.Theme}}">
+    <canvas class="confetti" aria-hidden="true"></canvas>
+    <div class="petals" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+    <main class="stage" data-no-labels="{{.NoLabels}}">
+        <section class="envelope" aria-label="A sealed letter">
+            <p class="envelope-to">A letter for <span>{{.Name}}</span></p>
+            <div class="envelope-art">
+                <svg class="envelope-paper" viewBox="0 0 320 210" aria-hidden="true" focusable="false">
+                    <rect class="env-back" x="4" y="4" width="312" height="202" rx="10"/>
+                    <path class="env-side" d="M4 14l132 96M316 14L184 110"/>
+                    <path class="env-front" d="M4 206L130 104a46 46 0 0 1 60 0l126 102z"/>
+                    <path class="env-flap" d="M6 8h308L176 112a26 26 0 0 1-32 0z"/>
+                </svg>
+                <button class="seal" type="button" aria-label="Break the seal and open the letter">
+                    <span class="seal-mark">{{.Seal}}</span>
+                </button>
+            </div>
+            <p class="envelope-hint">tap the seal to open</p>
+        </section>
+
+        <article class="letter" aria-label="The letter" hidden>
+            <p class="letter-date">{{.DateLabel}}</p>
+            <h1 class="letter-title" tabindex="-1">{{.Title}}</h1>
+            <p class="letter-dear">Dear {{.Name}},</p>
+            {{range .Paragraphs}}<p class="letter-p">{{.}}</p>
+            {{end}}
+            {{with .From}}<p class="letter-sign">— {{.}}</p>{{end}}
+
+            <section class="ask" aria-label="A question">
+                <svg class="sky" viewBox="0 0 120 80" aria-hidden="true" focusable="false">
+                    <g class="sun">
+                        <g class="rays">
+                            <path d="M70 6v8M70 58v8M40 36h8M92 36h8M49 15l6 6M85 51l6 6M49 57l6-6M85 21l6-6"/>
+                        </g>
+                        <circle cx="70" cy="36" r="13"/>
+                    </g>
+                    <g class="cloud">
+                        <path d="M30 54h48a13 13 0 0 0 0-26 18 18 0 0 0-34-4 14 14 0 0 0-14 30z"/>
+                        <g class="drops">
+                            <path d="M36 62l-2 6"/><path d="M48 62l-2 6"/><path d="M60 62l-2 6"/>
+                            <path d="M42 70l-2 6"/><path d="M54 70l-2 6"/><path d="M66 70l-2 6"/>
+                        </g>
+                    </g>
+                </svg>
+                <p class="question">{{.Question}}</p>
+                <div class="answers">
+                    <button class="answer answer-yes" type="button">{{.Yes}}</button>
+                    <button class="answer answer-no" type="button">{{.No}}</button>
+                </div>
+                <ol class="notes" aria-live="polite"></ol>
+            </section>
+
+            <section class="yes" aria-live="polite" hidden>
+                <span class="stamp" aria-hidden="true">{{.Stamp}}</span>
+                <h2 class="yes-title" tabindex="-1">{{.YesTitle}}</h2>
+                <p class="yes-note is-writing"><span class="ink"></span></p>
+                <ul class="promises"></ul>
+                <p class="promises-hint" hidden>tap each one to accept it</p>
+                {{if .HasGift}}
+                <div class="gift" hidden>
+                    <p class="gift-intro"></p>
+                    <button class="gift-code is-hidden" type="button" aria-label="Reveal the surprise">
+                        <span class="gift-value"></span>
+                        <span class="gift-hint" aria-hidden="true">tap to reveal</span>
+                    </button>
+                    <a class="gift-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open</a>
+                </div>
+                {{end}}
+            </section>
+        </article>
+    </main>
+</body>
+</html>
